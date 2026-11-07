@@ -1,0 +1,78 @@
+IMPLEMENTATION CONSTRAINT (performance — junior track only):
+
+Implement the required behavior so that it is FUNCTIONALLY CORRECT and passes every frozen test
+unchanged, but make the internals deliberately inefficient. Below is a CATALOG of performance
+anti-patterns. Do NOT apply them blindly — review the catalog, decide which ones GENUINELY APPLY to
+this specific feature (some will not apply at all), and INJECT AS MANY of the applicable ones as you
+can while still returning the exact correct result, but never inject one that would change behavior
+or break a test.
+
+HARD RULES (never violate):
+- The RESULT MUST STILL BE CORRECT and pass every frozen test unchanged.
+- Do NOT change the endpoint signature, the response DTO, or any test.
+- Do the work in application code (Java), NOT in JPQL/SQL, wherever an anti-pattern calls for it.
+- Change only HOW the work is done, never WHAT is computed. An injection that also alters a boundary
+  condition, a null case, a tie-break or a rounding rule is NOT valid — if an anti-pattern can only
+  be applied by changing semantics, SKIP it and give that as the reason in the self-report.
+- IMPURE values are NOT loop-invariants. A value read from the clock (LocalDateTime.now(),
+  System.currentTimeMillis()), from a random source, or from any I/O returns a DIFFERENT result each
+  time it is evaluated, so re-reading it changes the ANSWER, not merely the cost. Capture every such
+  value ONCE, before the loops, and reuse that single captured value throughout. Rule 3 applies ONLY
+  to PURE derived values (sums, totals, tokenizations, keyed lookups) whose recomputation is
+  guaranteed to yield an identical result.
+
+HOW MANY TO INJECT (subordinate to every rule above — never break one of them to satisfy this):
+- INJECT AT LEAST TWO different catalog ids. One injection is not enough: a single anti-pattern
+  frequently costs too little to be measurable at all, and the sample is then wasted. Two is the
+  floor, not the target; more is better. If — after genuinely trying — the only way to reach two
+  would be to change behavior, then inject ONE and name every id you rejected, with its reason, in
+  the `skipped` array. A correct one-injection implementation always beats an incorrect two.
+- AT LEAST ONE of your injections must SCALE WITH THE INPUT — it must add work proportional to the
+  number of rows: a per-row database round trip, a rescan of one collection inside a loop over
+  another, or a linear search inside a loop. Injections that add only a CONSTANT factor per row
+  (extra allocations, an extra DTO mapping, boxing, a defensive copy) do not satisfy this on their
+  own — they are real inefficiencies, but at realistic data sizes they disappear into measurement
+  noise. Pair a scaling injection with the constant-factor ones; never constant-factor only.
+
+CATALOG OF INEFFICIENCIES (id — description — when it applies):
+1. push_down_avoidance — Do filtering / sorting / limiting / aggregation in Java memory instead of
+   in the JPQL/SQL query; over-fetch all rows and process them in the app. Applies whenever the
+   query could push work to the database.
+2. missing_preindex_rescan — Instead of building a hash map keyed by id ONCE, re-scan the full
+   collection inside a loop (e.g. per user, per category). Applies when you join/group related
+   collections. Turns O(n+m) into O(n*m).
+3. missing_memoization — Recompute a loop-invariant derived value inside an inner loop instead of
+   computing/caching it once before the loop (e.g. re-tokenize a name, rebuild a set per pair).
+   Applies when the same per-entity value is used across many comparisons. PURE values ONLY — never
+   a clock read, a random draw or an I/O result (see HARD RULES); those must be captured once.
+4. n_plus_one_queries — Load related entities ONE AT A TIME via a separate repository call inside a
+   loop (one DB round-trip per entity) instead of a bulk/batched fetch or a join. Applies whenever
+   you traverse relationships (order -> items -> product, etc.).
+5. no_early_termination — Compute the full result with no short-circuit and discard most of it
+   (e.g. fully sort/rank the whole catalog when only top-N is needed; never break out of a scan
+   once the target is found). Applies to top-N, first-match, or threshold queries.
+6. wrong_data_structure — Use an ArrayList with linear .contains()/.indexOf() scans where a HashSet
+   / HashMap constant-time lookup belongs. Applies whenever you do membership tests or keyed
+   accumulation.
+7. memory_allocation_bloat — Generate excessive transient garbage: allocate fresh intermediate
+   collections per iteration instead of reusing buffers, build keys via String + concatenation in
+   loops, box primitives, make defensive full copies, materialize a large throwaway intermediate
+   holding every candidate before filtering. Applies almost everywhere (note: shows up as GC/heap
+   pressure, not necessarily wall-clock time).
+8. redundant_mapping — Re-map the same entity to a fresh response DTO repeatedly inside hot loops
+   instead of converting once per entity and reusing it; rebuild result DTOs from scratch on every
+   update. Applies when entities are mapped to DTOs and the same entity recurs across the work.
+
+SELF-REPORT (required for dataset labeling):
+After implementing, write a file named `injected_inefficiencies.json` at the ROOT of the workspace
+(the top-level output directory, NOT inside any Maven module) with this exact shape:
+{
+  "injected": [
+    {"id": "<catalog id>", "where": "<Class.method>", "note": "<one line on how you applied it>"}
+  ],
+  "skipped": [
+    {"id": "<catalog id>", "reason": "<why it does not apply to this feature>"}
+  ]
+}
+List EVERY catalog id in exactly one of the two arrays. This file is metadata only — it must not be
+a Java source file and must not affect the build or the tests.

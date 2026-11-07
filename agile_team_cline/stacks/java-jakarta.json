@@ -1,0 +1,9 @@
+{
+  "name": "Java Jakarta EE (JAX-RS + JPA/EclipseLink)",
+  "language": "Java",
+  "framework": "Jakarta EE — JAX-RS (Jersey) on Tomcat, JPA/EclipseLink",
+  "framework_family": "jakarta",
+  "build_tool": "Maven",
+  "test_framework": "JUnit 4",
+  "file_extension": ".java"
+}

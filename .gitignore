@@ -1,0 +1,189 @@
+# Build artifacts
+target/
+build/
+*.class
+*.jar
+*.war
+*.ear
+*.zip
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg-info/
+dist/
+.venv/
+venv/
+.env.local
+
+# IDE & editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+*.sublime-project
+*.sublime-workspace
+
+# Environment & config
+.env
+.env.*.local
+credentials.json
+secrets.yaml
+
+# Test & run artifacts
+*.log
+test-results/
+coverage/
+
+# Workspaces (test/experiment directories)
+/teastore-*/
+!/teastore-dataset/
+!/teastore-legacy-dataset/
+petclinic-*/
+workspace_*/
+*-test/
+*-fresh*/
+*-abcfix/
+# TrainTicket dual-track workspaces (senior/junior pairs) + the TrainTicket baseline clone;
+# dual_track_*/ also catches a legacy misnamed workspace-dir variant (dual_track_trainticket-*)
+trainticket-*/
+dual_track_*/
+train-ticket/
+
+# Maven
+.m2/
+settings.xml
+settings-security.xml
+
+# Node (if applicable)
+node_modules/
+npm-debug.log
+package-lock.json
+yarn.lock
+
+# Temporary/misc
+*.tmp
+*.bak
+*.orig
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# Git-related
+.git/
+.gitkeep
+
+# Project-specific
+pom_watch*.log
+run_pom_watch_driver.out
+
+# Pipeline snapshots — timestamped backup copies of the agile_team_cline package,
+# never committed (top-level + nested under reference/)
+*.backup_*/
+agile_team_cline.backup_*/
+# timestamped file backups, e.g. dual_track.py.bak_20260627_232708
+# (the plain `*.bak` rule above does NOT match the trailing _<timestamp>)
+*.bak_*
+
+# Large regenerable artifacts
+# Kieker .dat profiling output (hundreds of MB); the summary numbers are quoted in docs/
+profiling/runs/
+# vendored external framework sources
+reference/Frameworks/
+
+# Intentionally NOT ignored (tracked deliverables, listed here as a reminder):
+#   perf_dataset.jsonl             — the thesis dataset (the actual output of the dual-track engine)
+#   perf_dataset_trainticket.jsonl — same, TrainTicket stack
+#   perf_dataset_teastore.jsonl    — same, TeaStore stack (dataset v1 batch, independent pairs)
+#   perf_dataset_teastore_history.jsonl — same, TeaStore chained-trunk longitudinal history
+#                                          (scripts/run_teastore_chained_history.sh, dataset v2)
+#   runs/*.md                      — run reports / documentation
+#
+# NOTE: teastore-trunk/, teastore-trunk_history/, and teastore-hist-*-{senior,junior}/
+# (the chained-history workspaces) live under teastore-dataset/, un-ignored above.
+
+# teastore-dataset/ and teastore-legacy-dataset/ are tracked (source + results per
+# workspace: Java source, contract.json, test_report.json, injected_inefficiencies.json,
+# profile/summary.csv, profile/traces.json, etc.) but their raw/regenerable profiling
+# output is excluded — hundreds of MB to a few GB per workspace and reproducible via
+# scripts/kieker_profile.sh + scripts/measure_largescale.sh:
+teastore-dataset/**/profile/iter_*/
+teastore-legacy-dataset/**/profile/iter_*/
+teastore-dataset/**/profile/samples.csv
+teastore-dataset/**/profile/samples_tagged.csv
+teastore-legacy-dataset/**/profile/samples.csv
+teastore-legacy-dataset/**/profile/samples_tagged.csv
+teastore-dataset/**/profile_largescale/
+teastore-legacy-dataset/**/profile_largescale/
+# same convention for the two later profiling modes: profile_paper/ (the paper-literal
+# in-session run consumed by profiling/paper_detect.py) and profile_only/ (the isolated
+# single-query workload). summary.csv + traces.json stay tracked; the raw records do not
+# (profile_paper/ alone is ~5.9 GB across the reorder pair).
+teastore-dataset/**/profile_paper/iter_*/
+teastore-dataset/**/profile_paper/samples.csv
+teastore-dataset/**/profile_paper/samples_tagged.csv
+teastore-dataset/**/profile_only/iter_*/
+teastore-dataset/**/profile_only/samples.csv
+teastore-dataset/**/profile_only/samples_tagged.csv
+# profile_only_rep/ is the senior REPLICATE pass (S vs S'), added 2026-08-17 for the
+# noise-floor measurement. Same convention: summary.csv + meta.json stay tracked (the
+# floor is computed from them), the raw records do not (dupes' replicate alone is 2.8 GB).
+teastore-dataset/**/profile_only_rep/iter_*/
+teastore-dataset/**/profile_only_rep/samples.csv
+teastore-dataset/**/profile_only_rep/samples_tagged.csv
+# profile_only_split/ is profile_only/ with the fixture-loading phase removed
+# (scripts/apply_setup_split.py). Regenerable from the parent profile in seconds.
+teastore-dataset/**/profile_only_split/samples.csv
+teastore-dataset/**/profile_only_split/samples_tagged.csv
+teastore-dataset/**/profile_only_rep_split/samples.csv
+teastore-dataset/**/profile_only_rep_split/samples_tagged.csv
+# system-oracle raw JMeter output (~30 MB per run); oracle_stats.json holds the summary
+*.jtl
+# point-in-time copies of an oracle/chain run, kept locally for post-mortem only
+teastore-dataset/**/oracle_prekill_*/
+teastore-dataset/**/oracle_r1_backup/
+teastore-dataset/_pre_chain_merge_backup_*/
+# raw per-task agent conversation transcripts (process logs, not source or results)
+teastore-dataset/**/*_cline.jsonl
+teastore-legacy-dataset/**/*_cline.jsonl
+
+# derived canonical dataset views (regenerate with scripts/dataset_view.py --write)
+*.latest.jsonl
+
+# pytest cache and run logs (regenerable, not deliverables)
+.pytest_cache/
+logs/
+paper_artifacts/
+docker-compose.oracle.yaml
+oracle_warmup_failure_logs.txt
+oracle_docker_stats*.txt
+paper_algorithm_out/
+# local backups of earlier pipeline runs and of the dataset jsonl; git history is the record
+old_runs/
+perf_dataset_teastore_history.jsonl.bak-*
+paper_algorithm_results_split.jsonl.bak-*
+.claude/scheduled_tasks.lock
+
+# RQ2 diff-audit extraction workdir (regenerated by scripts/rq2_audit_tool/rq2_diff_extract.sh)
+scripts/rq2_audit_tool/_audit_workdir/
+
+# SimQPN binaries and execution outputs
+tools/
+simqpn/
+
+# Dataset outputs: not tracked in git (files stay on disk). This supersedes the
+# perf_dataset*.jsonl entries in the "Intentionally NOT ignored" list above.
+teastore-dataset/
+teastore-legacy-dataset/
+perf_dataset*.jsonl*
+
+# Local-only material (thesis results, backups, drafts). Never committed.
+local_only/

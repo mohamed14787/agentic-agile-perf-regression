@@ -1,0 +1,22 @@
+{
+  "name": "Java Spring Boot",
+  "language": "Java",
+  "framework": "Spring Boot",
+  "framework_family": "spring",
+  "build_tool": "Maven",
+  "test_framework": "JUnit 5",
+  "file_extension": ".java",
+  "task_types": ["entity", "repository", "service", "controller", "config", "test"],
+  "annotations": {
+    "entity": "@Entity, @Table, @Id, @GeneratedValue",
+    "repository": "extends JpaRepository<Entity, Long>",
+    "service": "@Service, @Transactional",
+    "controller": "@RestController, @RequestMapping"
+  },
+  "imports": {
+    "entity": "import jakarta.persistence.*;",
+    "repository": "import org.springframework.data.jpa.repository.JpaRepository;",
+    "service": "import org.springframework.stereotype.Service; import org.springframework.transaction.annotation.Transactional;",
+    "controller": "import org.springframework.web.bind.annotation.*; import org.springframework.http.ResponseEntity;"
+  }
+}

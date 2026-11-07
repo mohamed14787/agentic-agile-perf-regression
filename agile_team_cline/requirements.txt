@@ -1,0 +1,16 @@
+# Runtime and test dependencies. Versions are the ones the test suite was verified with.
+# Install into the project venv:  pip install -r agile_team_cline/requirements.txt
+
+# CAMEL agents (QA, Product Owner, Architect). camel-ai 0.2.90 fails to import with mcp>=2.
+camel-ai==0.2.90
+mcp==1.27.1
+openai==2.36.0
+
+# tree-sitter Java probe (java_probe.py). Optional: sprint.py falls back to regex scanners
+# when these are absent.
+tree-sitter==0.25.2
+tree-sitter-java==0.23.5
+
+# System oracle compose generation and tests
+PyYAML==6.0.3
+pytest==9.0.3

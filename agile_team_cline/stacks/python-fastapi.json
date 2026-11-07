@@ -1,0 +1,21 @@
+{
+  "name": "Python FastAPI",
+  "language": "Python",
+  "framework": "FastAPI",
+  "build_tool": "pip",
+  "test_framework": "pytest",
+  "file_extension": ".py",
+  "task_types": ["model", "repository", "service", "router", "config", "test"],
+  "annotations": {
+    "model": "class Model(BaseModel)",
+    "router": "@router.get, @router.post, @router.put, @router.delete",
+    "service": "async def",
+    "config": "from pydantic_settings import BaseSettings"
+  },
+  "imports": {
+    "model": "from pydantic import BaseModel",
+    "router": "from fastapi import APIRouter, HTTPException",
+    "service": "from sqlalchemy.orm import Session",
+    "config": "from pydantic_settings import BaseSettings"
+  }
+}

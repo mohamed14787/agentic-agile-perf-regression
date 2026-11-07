@@ -1,0 +1,72 @@
+<!DOCTYPE aspectj PUBLIC "-//AspectJ//DTD//EN" "http://www.eclipse.org/aspectj/dtd/aspectj.dtd">
+<aspectj>
+	<weaver options="-Xlint:ignore">
+		<!-- Scope to the REPOSITORY component (the paper's local measurement site).
+		     We weave whole repository classes (not the persistence.domain entities), so that
+		     get*-named REPOSITORY QUERY methods (getAllEntities, getBasketLift, ...) are captured
+		     as the real DB operations they are — while trivial entity getters/setters are kept out
+		     by SCOPE, not by a name-prefix rule that would silently drop a feature method. -->
+		<include within="tools.descartes.teastore.persistence.domain..*Repository" />
+		<!-- REST endpoints are in scope so that IF a workload ever drives them, the recorded call
+		     graph gains a real entry-point to repository edge for the paper's step C.
+
+		     MEASURED, 2026-08-05: under the current JUnit workload this include is INERT — zero
+		     endpoint records, because no test in the module ever loads a rest.*Endpoint class.
+		     The classes named *EndpointTest are misleading: they import only
+		     persistence.domain.*Repository and exercise the repository directly. The REST layer is
+		     reached only by the deployed app, i.e. the ORACLE path, never the local Kieker path.
+
+		     So audit finding K3 (call graph of 14 edges over 43 operations, demand_scale
+		     1.0006-1.0013, propagation effectively a no-op) is NOT caused by weave scope and is
+		     not fixed by widening it. The local measurement's entry point genuinely IS the
+		     repository method — which is defensible, since the paper's local step is also
+		     component-level — and the graph is thin because TeaStore's repositories seldom call
+		     one another. Fixing it for real would need a workload that enters through the
+		     endpoints. Left in place because it costs nothing and becomes live the moment one
+		     exists. -->
+		<include within="tools.descartes.teastore.persistence.rest..*Endpoint" />
+		<!-- exclude test classes — weaving around-advice into a test method generates
+		     $AjcClosureN inner classes that break JUnit's reflective invocation -->
+		<exclude within="tools.descartes.teastore..*Test" />
+		<exclude within="tools.descartes.teastore..*Test$*" />
+		<exclude within="tools.descartes.teastore..*Tests" />
+		<exclude within="tools.descartes.teastore..*TestSuite" />
+		<!-- exclude logging packages to prevent infinite recursion -->
+		<exclude within="org.slf4j..*" />
+		<exclude within="org.apache.log4j..*" />
+		<exclude within="org.apache.commons.logging..*" />
+		<exclude within="org.jctools..*" />
+	</weaver>
+
+	<aspects>
+		<!-- Kieker's pre-compiled concrete aspect (ajc-compiled, ships in kieker-2.0.0-aspectj.jar).
+		     "Full" = execution(* *(..)) with NO getter/setter name exclusion — so a repository query
+		     method named get* is measured, not silently dropped. Entity accessors are excluded by the
+		     weaver scope above (*Repository only). Writes OperationExecutionRecord(sig, tin, tout, ...).
+
+		     NOTE ON PER-METHOD EXCLUSIONS (audit 2026-08-05, finding K4). A census of
+		     teastore-hist-reorder-junior/profile/iter_01 (3,203 records) found the stream dominated
+		     by operations that are on NO feature's read path:
+		         634 + 342 + 179 = 1,155 records (36%)  Product/OrderItem/Order Repository.createEntity
+		         427 + 272 + 222 + 119 = 1,040 (32%)    Product/User/Category/Order .getEntityClass
+		     68% of the profile, while the operation actually under test
+		     (getReplenishmentForecast, 40 calls) did not make the top eight. The harm is not the
+		     wasted disk: these operations dominate the CONTROL set compare_kieker.py uses to
+		     estimate machine drift, so a read-heavy analytic query was being normalized by the
+		     drift of write-heavy transactional inserts — different cache, lock and I/O regimes.
+
+		     Upstream TeaStore excludes getEntityClass for all five repositories via a
+		     concrete-aspect pointcut; our from-scratch rewrite dropped that. Restoring it the same
+		     way does NOT work in this harness: the weaver generates the concrete aspect into the
+		     classloader owning the abstract parent (the -javaagent jar, system loader) while
+		     Surefire's forked JVM resolves it from the test classloader, so every test dies with
+		     NoClassDefFoundError before a single record is written. Verified twice, under both a
+		     tools.descartes.* and a kieker.monitoring.* aspect name: 4/4 errors, 0 records.
+
+		     The rule therefore lives DOWNSTREAM, in compare_kieker.py (_CONTROL_EXCLUDED_METHODS),
+		     which is where it actually bites. Records are still written; they are simply no longer
+		     eligible as drift controls. The residual cost is probe overhead on fixture setup, which
+		     sits outside the measured method and does not enter its timing. -->
+		<aspect name="kieker.monitoring.probe.aspectj.operationExecution.OperationExecutionAspectFull" />
+	</aspects>
+</aspectj>
