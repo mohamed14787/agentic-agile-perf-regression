@@ -7,7 +7,7 @@ from agile_team_cline.config import make_model
 
 _MODEL_CACHE = {}
 
-# Wenyan-ultra inter-agent compression (caveman skill, JuliusBrussee/caveman).
+# Wenyan-ultra inter-agent compression (adapted from github.com/JuliusBrussee/caveman).
 # Ceremony agents only — cline coding briefs and code/JSON payloads never pass
 # through make_agent, so they stay uncompressed by construction.
 _WENYAN_SUFFIX = (
